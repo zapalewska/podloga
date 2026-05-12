@@ -1,0 +1,1300 @@
+﻿<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>The Floor - zegary rozgrywki</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050712;
+        --panel: rgba(9, 20, 45, 0.88);
+        --panel-strong: rgba(17, 33, 74, 0.96);
+        --line: rgba(124, 229, 255, 0.34);
+        --cyan: #18d8ff;
+        --magenta: #bf31ff;
+        --violet: #6f39ff;
+        --danger: #ff3d71;
+        --warning: #ffc247;
+        --text: #f8fbff;
+        --muted: #9fb2ce;
+        --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+        --round: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% -12%, rgba(128, 60, 255, 0.28), transparent 34rem),
+          linear-gradient(135deg, #03040b 0%, #07142b 48%, #0d0823 100%);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .stage {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto auto auto auto;
+        gap: clamp(8px, 1.2vw, 14px);
+        min-height: 100vh;
+        padding: clamp(10px, 1.5vw, 18px);
+        isolation: isolate;
+      }
+
+      .stage::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background:
+          linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 56px 56px;
+        mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+      }
+
+      .scoreboard {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(220px, 1.1fr) minmax(0, 0.95fr);
+        align-items: center;
+        width: min(1120px, 100%);
+        min-height: clamp(48px, 6vh, 68px);
+        margin: 0 auto;
+        border: 1px solid rgba(182, 98, 255, 0.68);
+        box-shadow: 0 0 28px rgba(140, 45, 255, 0.42), inset 0 0 30px rgba(25, 216, 255, 0.09);
+        background: linear-gradient(180deg, rgba(18, 28, 63, 0.94), rgba(9, 16, 40, 0.9));
+        clip-path: polygon(2.2% 0, 97.8% 0, 100% 100%, 0 100%);
+      }
+
+      .photo-board {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+      }
+
+      .photo-frame {
+        position: relative;
+        height: clamp(290px, 52vh, 590px);
+        overflow: hidden;
+        border: 1px solid rgba(24, 216, 255, 0.34);
+        background: rgba(3, 7, 19, 0.78);
+        box-shadow: 0 18px 52px rgba(0, 0, 0, 0.34), inset 0 0 30px rgba(24, 216, 255, 0.08);
+      }
+
+      .photo-frame.missing .photo {
+        opacity: 0.16;
+      }
+
+      .photo-placeholder {
+        position: absolute;
+        inset: 0;
+        display: none;
+        place-items: center;
+        padding: 24px;
+        color: var(--muted);
+        font-size: clamp(1rem, 2vw, 1.5rem);
+        font-weight: 850;
+        text-align: center;
+      }
+
+      .photo-frame.missing .photo-placeholder {
+        display: grid;
+      }
+
+      .photo {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: contain;
+      }
+
+      .nameplate,
+      .category {
+        min-width: 0;
+        padding: clamp(8px, 1vw, 12px) clamp(12px, 1.8vw, 22px);
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0;
+        font-weight: 900;
+        line-height: 1.08;
+        overflow-wrap: anywhere;
+      }
+
+      .nameplate {
+        color: #dce8ff;
+        font-size: clamp(0.95rem, 2vw, 1.55rem);
+        text-shadow: 0 0 18px rgba(24, 216, 255, 0.24);
+        transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease, text-shadow 160ms ease;
+      }
+
+      .nameplate.active {
+        color: #ffffff;
+        background: linear-gradient(180deg, rgba(24, 216, 255, 0.24), rgba(44, 97, 255, 0.2));
+        box-shadow: inset 0 -4px 0 var(--cyan), inset 0 0 26px rgba(24, 216, 255, 0.16);
+        text-shadow: 0 0 20px rgba(24, 216, 255, 0.56);
+      }
+
+      .category {
+        display: grid;
+        place-items: center;
+        background: linear-gradient(180deg, rgba(184, 49, 255, 0.68), rgba(99, 32, 158, 0.8));
+        border-inline: 2px solid rgba(234, 116, 255, 0.56);
+        color: #fff8ff;
+        font-size: clamp(0.9rem, 1.75vw, 1.4rem);
+        text-shadow: 0 0 18px rgba(255, 255, 255, 0.28);
+      }
+
+      .arena {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: clamp(10px, 1.4vw, 18px);
+        align-items: center;
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        padding-block: 0;
+      }
+
+      .player {
+        position: relative;
+        min-width: 0;
+        min-height: clamp(120px, 16vh, 185px);
+        display: grid;
+        grid-template-rows: 1fr auto;
+        padding: clamp(10px, 1.6vw, 18px);
+        overflow: hidden;
+        border: 1px solid rgba(138, 172, 255, 0.24);
+        background: linear-gradient(180deg, rgba(6, 16, 40, 0.93), rgba(7, 10, 29, 0.96));
+        box-shadow: var(--shadow);
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .player::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border: 4px solid transparent;
+        opacity: 0;
+        transition: opacity 160ms ease, border-color 160ms ease;
+      }
+
+      .player.active::after {
+        border-color: var(--cyan);
+        opacity: 1;
+        box-shadow: inset 0 0 40px rgba(24, 216, 255, 0.18), 0 0 42px rgba(24, 216, 255, 0.28);
+      }
+
+      .player.out {
+        border-color: rgba(255, 61, 113, 0.72);
+      }
+
+      .player.pass-flash {
+        animation: passFlash 1000ms ease-out;
+      }
+
+      @keyframes passFlash {
+        0%,
+        18% {
+          background: linear-gradient(180deg, rgba(255, 61, 113, 0.72), rgba(72, 8, 32, 0.96));
+          border-color: rgba(255, 61, 113, 0.95);
+          box-shadow: 0 0 52px rgba(255, 61, 113, 0.62), inset 0 0 36px rgba(255, 61, 113, 0.26);
+        }
+
+        100% {
+          background: linear-gradient(180deg, rgba(6, 16, 40, 0.93), rgba(7, 10, 29, 0.96));
+          border-color: rgba(138, 172, 255, 0.24);
+          box-shadow: var(--shadow);
+        }
+      }
+
+      .clock {
+        display: grid;
+        place-items: center;
+        color: rgba(248, 251, 255, 0.96);
+        font-size: clamp(3.7rem, 8.8vw, 7.2rem);
+        font-weight: 1000;
+        line-height: 0.88;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 32px rgba(24, 216, 255, 0.26);
+      }
+
+      .player.out .clock {
+        color: var(--danger);
+        text-shadow: 0 0 34px rgba(255, 61, 113, 0.34);
+      }
+
+      .meter {
+        height: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .meter-fill {
+        width: 100%;
+        height: 100%;
+        transform-origin: left center;
+        background: linear-gradient(90deg, var(--cyan), #7effc6);
+        box-shadow: 0 0 18px rgba(24, 216, 255, 0.7);
+      }
+
+      .player.out .meter-fill {
+        background: var(--danger);
+      }
+
+      .controls {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        padding: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(3, 7, 19, 0.78);
+        backdrop-filter: blur(16px);
+        box-shadow: var(--shadow);
+      }
+
+      .controls.hidden {
+        display: none;
+      }
+
+      .fields,
+      .actions {
+        display: grid;
+        gap: 10px;
+      }
+
+      .fields {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-bottom: 7px;
+      }
+
+      label {
+        display: grid;
+        gap: 4px;
+        color: var(--muted);
+        font-size: 0.62rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      input {
+        min-width: 0;
+        height: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: var(--round);
+        padding: 0 12px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        outline: none;
+      }
+
+      input:focus {
+        border-color: var(--cyan);
+        box-shadow: 0 0 0 3px rgba(24, 216, 255, 0.15);
+      }
+
+      .actions {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+
+      button {
+        min-height: 34px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: var(--round);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        cursor: pointer;
+        font-weight: 850;
+        transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(24, 216, 255, 0.55);
+        background: rgba(24, 216, 255, 0.15);
+      }
+
+      button.primary {
+        border-color: rgba(24, 216, 255, 0.65);
+        background: linear-gradient(180deg, rgba(24, 216, 255, 0.42), rgba(25, 91, 175, 0.48));
+      }
+
+      button.danger {
+        border-color: rgba(255, 61, 113, 0.52);
+      }
+
+      .show-controls {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 3;
+        width: 48px;
+        min-height: 48px;
+        display: none;
+        border-radius: 999px;
+        background: rgba(3, 7, 19, 0.82);
+      }
+
+      .show-controls.visible {
+        display: block;
+      }
+
+      @media (max-width: 840px) {
+        body {
+          overflow: auto;
+        }
+
+        .stage {
+          min-height: 100svh;
+        }
+
+        .scoreboard,
+        .arena,
+        .fields,
+        .actions {
+          grid-template-columns: 1fr;
+        }
+
+        .scoreboard {
+          clip-path: none;
+        }
+
+        .photo-frame {
+          height: 210px;
+        }
+
+        .category {
+          border-inline: 0;
+          border-block: 1px solid rgba(234, 116, 255, 0.56);
+        }
+
+        .player {
+          min-height: 270px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage">
+      <section class="photo-board" aria-label="Zdjecie do kategorii">
+        <div class="photo-frame" id="photoFrame">
+          <img class="photo" id="categoryPhoto" alt="Owoc do odgadniecia">
+          <div class="photo-placeholder" id="photoPlaceholder">Brak zdjec dla tej kategorii</div>
+        </div>
+      </section>
+
+      <section class="scoreboard" aria-label="Uczestnicy i kategoria">
+        <div class="nameplate" id="leftName">Katarzyna</div>
+        <div class="category" id="categoryName">Owoce</div>
+        <div class="nameplate" id="rightName">Natalia</div>
+      </section>
+
+      <section class="arena" aria-label="Zegary uczestnikow">
+        <article class="player active" id="leftPlayer">
+          <div class="clock" id="leftClock">45</div>
+          <div class="meter" aria-hidden="true"><div class="meter-fill" id="leftMeter"></div></div>
+        </article>
+
+        <article class="player" id="rightPlayer">
+          <div class="clock" id="rightClock">45</div>
+          <div class="meter" aria-hidden="true"><div class="meter-fill" id="rightMeter"></div></div>
+        </article>
+      </section>
+
+      <section class="controls" id="controls" aria-label="Panel sterowania">
+        <div class="fields">
+          <label>
+            Imie po lewej
+            <input id="leftInput" value="Katarzyna" maxlength="18" autocomplete="off">
+          </label>
+          <label>
+            Kategoria
+            <input id="categoryInput" value="Owoce" autocomplete="off">
+          </label>
+          <label>
+            Imie po prawej
+            <input id="rightInput" value="Natalia" maxlength="18" autocomplete="off">
+          </label>
+          <label>
+            Czas rundy
+            <input id="roundInput" type="number" value="45" min="5" max="999" step="1">
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="passButton" type="button">PASS</button>
+          <button id="previousPhotoButton" type="button">Wstecz</button>
+          <button id="nextPhotoButton" type="button">Nastepne zdjecie</button>
+          <button id="addButton" type="button">+5 s</button>
+          <button class="danger" id="resetButton" type="button">Reset</button>
+          <button id="hideButton" type="button">Ukryj panel</button>
+        </div>
+      </section>
+    </main>
+
+    <button class="show-controls" id="showButton" type="button" title="Pokaz panel">...</button>
+
+    <script>
+      const state = {
+        active: "left",
+        running: false,
+        roundSeconds: 45,
+        left: 45,
+        right: 45,
+        photoIndex: 0,
+        photoQueue: [],
+        photoCategoryKey: "",
+        lastTick: null,
+        raf: null
+      };
+
+      function localPhoto(folder, file) {
+        return {
+          name: file.replace(/\.[^.]+$/, "").replace(/^[A-Z]{2}\s+/, "").replace(/^\d+_/, "").replace(/[_-]+/g, " "),
+          src: `images/${folder}/${file}`
+        };
+      }
+
+      const categoryPhotos = {
+        owoce: [
+          {
+            name: "Jablko",
+            src: "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?auto=format&fit=crop&w=1200&q=80"
+          },
+          {
+            name: "Banan",
+            src: "https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=1200&q=80"
+          },
+          {
+            name: "Truskawka",
+            src: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?auto=format&fit=crop&w=1200&q=80"
+          },
+          {
+            name: "Pomarancza",
+            src: "https://images.unsplash.com/photo-1547514701-42782101795e?auto=format&fit=crop&w=1200&q=80"
+          }
+        ],
+        "harry potter": [
+          {
+            name: "Harry Potter",
+            src: "images/harry-potter/514Lfa5ZwhL._AC_UF894,1000_QL80_.jpg"
+          },
+          {
+            name: "Aragog",
+            src: "images/harry-potter/aragog.webp"
+          },
+          {
+            name: "Bazyliszek",
+            src: "images/harry-potter/bazyliszek.webp"
+          },
+          {
+            name: "Bellatrix Lestrange",
+            src: "images/harry-potter/bellatrix lestrange.webp"
+          },
+          {
+            name: "Cedric Diggory",
+            src: "images/harry-potter/cedric-diggory_.png"
+          },
+          {
+            name: "Czara Ognia",
+            src: "images/harry-potter/czara ognia.jpeg"
+          },
+          {
+            name: "Czarna Rozdzka",
+            src: "images/harry-potter/czarna rozdzka.jpg"
+          },
+          {
+            name: "Dolores Umbridge",
+            src: "images/harry-potter/DoloresUmbridge.jpeg"
+          },
+          {
+            name: "Dziennik Toma Riddla",
+            src: "images/harry-potter/dziennik toma riddla.webp"
+          },
+          {
+            name: "Gilderoy Lockhart",
+            src: "images/harry-potter/GilderoyLockhart_.jpg"
+          },
+          {
+            name: "Ginny Weasley",
+            src: "images/harry-potter/ginny-weasley_.jpg"
+          },
+          {
+            name: "Hedwiga",
+            src: "images/harry-potter/Hedwig_WB_F3_HedwigInTheForest_Still_100615_Port.webp"
+          },
+          {
+            name: "Jeczaca Marta",
+            src: "images/harry-potter/jęcząca marta.webp"
+          },
+          {
+            name: "Kamien Filozoficzny",
+            src: "images/harry-potter/kamien filozoficzny.webp"
+          },
+          {
+            name: "Komnata Tajemnic",
+            src: "images/harry-potter/komnata tajemnic.webp"
+          },
+          {
+            name: "Lucius Malfoy",
+            src: "images/harry-potter/lucius malfoy.png"
+          },
+          {
+            name: "Mandragory",
+            src: "images/harry-potter/Mandragory.webp"
+          },
+          {
+            name: "Mapa Huncwotow",
+            src: "images/harry-potter/mapa huncwotow.jpg"
+          },
+          {
+            name: "Minerva McGonagall",
+            src: "images/harry-potter/Minerva McGonagall.jpg"
+          },
+          {
+            name: "Nagini",
+            src: "images/harry-potter/nagini.jpeg"
+          },
+          {
+            name: "Patronus",
+            src: "images/harry-potter/patronus.jpg"
+          },
+          {
+            name: "Peter Pettigrew",
+            src: "images/harry-potter/peter-pettigrew_.png"
+          },
+          {
+            name: "Diadem Ravenclaw",
+            src: "images/harry-potter/ravenclaws-diadem_.jpg"
+          },
+          {
+            name: "Remus Lupin",
+            src: "images/harry-potter/RemusLupin.webp"
+          },
+          {
+            name: "Severus Snape",
+            src: "images/harry-potter/severus snape.webp"
+          },
+          {
+            name: "Syriusz Black",
+            src: "images/harry-potter/syriusz black.jfif"
+          },
+          {
+            name: "Tiara Przydzialu",
+            src: "images/harry-potter/tiara przydzialu.webp"
+          },
+          {
+            name: "Wyjec",
+            src: "images/harry-potter/wyjec.webp"
+          },
+          {
+            name: "Zakazany Las",
+            src: "images/harry-potter/zakazany las.webp"
+          },
+          {
+            name: "Zgredek",
+            src: "images/harry-potter/zgredek.jpg"
+          },
+          {
+            name: "Zloty Znicz",
+            src: "images/harry-potter/złoty znicz.webp"
+          },
+          {
+            name: "Hardodziobek",
+            src: "images/harry-potter/Hardodziobek.webp"
+          },
+          {
+            name: "Prorok Codzienny",
+            src: "images/harry-potter/prorok codzienny.jpg"
+          },
+          {
+            name: "Alastor Moody",
+            src: "images/harry-potter/alastor moody.jpg"
+          },
+          {
+            name: "Albus Dumbledore",
+            src: "images/harry-potter/albus dumbledore.jpg"
+          },
+          {
+            name: "Azkaban",
+            src: "images/harry-potter/azkaban.png"
+          },
+          {
+            name: "Bank Gringotta",
+            src: "images/harry-potter/bank gringotta.png"
+          },
+          {
+            name: "Centaur",
+            src: "images/harry-potter/centaur.webp"
+          },
+          {
+            name: "Dementor",
+            src: "images/harry-potter/dementor.jpg"
+          },
+          {
+            name: "Draco Malfoy",
+            src: "images/harry-potter/draco malfoy.jpg"
+          },
+          {
+            name: "Fasolki Wszystkich Smakow",
+            src: "images/harry-potter/fasolki wszystkich smaków.webp"
+          },
+          {
+            name: "Gwardia Dumbledora",
+            src: "images/harry-potter/gwardia dumbledora.webp"
+          },
+          {
+            name: "Hermiona Granger",
+            src: "images/harry-potter/hermiona granger.jpg"
+          },
+          {
+            name: "Kiel",
+            src: "images/harry-potter/kieł.jpg"
+          },
+          {
+            name: "List z Hogwartu",
+            src: "images/harry-potter/list z hogwartu.webp"
+          },
+          {
+            name: "Luna Lovegood",
+            src: "images/harry-potter/LunaLovegood.jpeg"
+          },
+          {
+            name: "Miecz Gryffindora",
+            src: "images/harry-potter/miecz gryffindora.webp"
+          },
+          {
+            name: "Nimbus 2000",
+            src: "images/harry-potter/nimbus2000.jpg"
+          },
+          {
+            name: "Pani Norris",
+            src: "images/harry-potter/pani norris.jpg"
+          },
+          {
+            name: "Parszywek",
+            src: "images/harry-potter/parszywek.webp"
+          },
+          {
+            name: "Peleryna Niewidka",
+            src: "images/harry-potter/peleryna niewidka.jpg"
+          },
+          {
+            name: "Peron 9 i 3/4",
+            src: "images/harry-potter/peron 9 i 3-4.webp"
+          },
+          {
+            name: "Prawie Bezgłowy Nick",
+            src: "images/harry-potter/prawie bezgłowy nick- sir nicolas.jpg"
+          },
+          {
+            name: "Puchar Turnieju Trojmagicznego",
+            src: "images/harry-potter/puchar turnieju trojmagicznego - swistoklik.webp"
+          },
+          {
+            name: "Ron Weasley",
+            src: "images/harry-potter/ron weasley.jpg"
+          },
+          {
+            name: "Ruchome Schody",
+            src: "images/harry-potter/ruchome schody.jpg"
+          },
+          {
+            name: "Smierciozerca",
+            src: "images/harry-potter/smierciozerca.jpg"
+          },
+          {
+            name: "Szalik Slytherinu",
+            src: "images/harry-potter/szalik slytherinu.jpg"
+          },
+          {
+            name: "Tom Riddle",
+            src: "images/harry-potter/tom riddle.webp"
+          },
+          {
+            name: "Troll Gorski",
+            src: "images/harry-potter/troll gorski.webp"
+          }
+        ],
+        "polscy wokalisci": [
+          "AA Kukulska.jpg",
+          "AB Margaret.jpg",
+          "AC Steczkowska.jpg",
+          "AD Vito.jpg",
+          "AE Kozidrak.jpg",
+          "AF Sanah.jpg",
+          "AG Krawczyk.jpg",
+          "AG Zalewski.jpg",
+          "AH Nergal.jpg",
+          "AI Cugowski.jpg",
+          "AJ Zawiałow.jpg",
+          "AK Rogucki.jpg",
+          "AL Brodka.jpg",
+          "AM Wyszkoni.jpg",
+          "AN Rojek.jpg",
+          "AO Podsiadło.jpg",
+          "AP Taco.png",
+          "AR Grzeszczak.jpg",
+          "AS Doda.jpg",
+          "AT Piaseczny.jpg",
+          "AU Rynkowski.jpg",
+          "AW Kora.jpg",
+          "AX Mandaryna.jpg",
+          "AY Turnau.png",
+          "AZ Sobel.jpg",
+          "BA Bartosiewicz.jpg",
+          "BB Mrozu.jpg",
+          "BC Rodowicz.jpg",
+          "BD Sokol.jpg",
+          "BE Martyniuk.jpg",
+          "BF Kwiatkowski.jpg",
+          "BG Kowalska.jpg",
+          "BH Cleo.jpg",
+          "BI Sochacka.jpg",
+          "BJ Quebo.jpg",
+          "BK Bednarek.jpg",
+          "BL Chylińska.jpg",
+          "BM Farna.jpg",
+          "BN Markowska.jpg",
+          "BO Wiśniewski.jpg",
+          "BP sojka.jpg",
+          "BR Kayah.jpg",
+          "BS Jantar.jpg",
+          "BT Herbut.png",
+          "BU Gabor.jpg",
+          "BW Cerekwicka.jpg",
+          "BX Markowski.jpg",
+          "BY Zaucha.jpg",
+          "BZ Bem.jpg"
+        ].map((file) => localPhoto("polscy-wokaliści", file)),
+        "trenerzy pilkarscy": [
+          "1_Pep Guardiola.jpg",
+          "2_Mikel Arteta.jpg",
+          "3_Luis Enrique.jpg",
+          "4_Arsene Wenger.jpg",
+          "5_Jürgen Klopp.jpg",
+          "6_Hansi Flick.jpg",
+          "7_José Mourinho.jpeg",
+          "8_Zinedine Zidane.jpg",
+          "9_Carlo Ancelotti.jpg",
+          "10_Jan Urban.jpg",
+          "11_Sir Alex Ferguson.webp",
+          "12_Diego Simeone.jpg",
+          "13_Arne Slot.webp",
+          "14_Xavi Hernández.avif",
+          "15_Vincent Kompany.jpg",
+          "16_Xabi Alonso.jpg",
+          "17_lionel scaloni.avif",
+          "18_Cesc Fabregas.webp",
+          "19_Mauricio Pochettino.webp",
+          "20_Adam Nawalka.jpg",
+          "21_Ronald Koeman.jpg",
+          "22_Rafael Benítez.jpg",
+          "23_Massimiliano Allegri.jpg",
+          "24_Steven Gerrard.jpg",
+          "25_Thierry Henry.jpg",
+          "26_Antonio Conte.jpg",
+          "27_Diego Maradona.jpg",
+          "28_Louis van Gaal.jpg",
+          "29_Didier Deschamps.jpg",
+          "30_Unai Emery.jpg",
+          "31_luis de la fuente.avif",
+          "32_Gareth Southgate.jpg",
+          "33_Erik ten Hag.jpg",
+          "34_Michaê Probierz.avif",
+          "35_Joachim Löw.jpg",
+          "36_Thomas Tuchel.jpg",
+          "37_Wayne Rooney.jpg",
+          "38_Rúben Amorim.jpg",
+          "39_Frank Lampard.webp",
+          "40_Luciano Spalletti.jpeg",
+          "41_Johan Cruyff.jpg",
+          "42_Julian Nagelsmann.jpg",
+          "43_Marcelo Bielsa.jpg",
+          "44_Vicente del Bosque.jpg",
+          "45_Ole Gunnar Solskaer.jpg",
+          "46_Andrea Pirlo.jpg",
+          "47_Czesêaw Michniewicz.jpeg",
+          "48_Jupp Heynckes.webp",
+          "49_Adrian Siemieniec.jpg",
+          "50_Manuel Pellegrini.jpg",
+          "51_Francesco Farioli.webp",
+          "52_Ernesto Valverde.jpg",
+          "52_Roberto De Zerbi.jpg",
+          "54_José Bordalás.jpg",
+          "55_Filippo Inzaghi.jpg",
+          "56_Tito Vilanova.webp",
+          "57_Luiz Felipe Scolari.jpg",
+          "58_Nuno Espírito Santo.jpg",
+          "59_Frank Rijkaard.jpg",
+          "60_Adolf Hütter.jpg"
+        ].map((file) => localPhoto("trenerzy-piłkarscy", file)),
+        "marki samochodow": [
+          "AA.jpg",
+          "AB.jpg",
+          "AC.jpg",
+          "AD.jpg",
+          "AE.jpg",
+          "AF.jpg",
+          "AG.jpg",
+          "AH.jpg",
+          "AI.jpg",
+          "AJ.jpg",
+          "AK.jpg",
+          "AL.jpg",
+          "AM.jpg",
+          "AN.jpg",
+          "AO.jpg",
+          "AP.jpg",
+          "AR.jpg",
+          "AS.jpg",
+          "AT.jpg",
+          "AU.jpg",
+          "AW.jpg",
+          "AX.jpg",
+          "AY.jpg",
+          "AZ.jpg",
+          "BA.jpg",
+          "BB.jpg",
+          "BC.jpg",
+          "BD.jpg",
+          "BE.jpg",
+          "BF.jpg",
+          "BG.jpg",
+          "BH.jpg",
+          "BI.jpg",
+          "BJ.jpg",
+          "BK.jpg",
+          "BL.jpg",
+          "BM.jpg",
+          "BN.jpg",
+          "BO.jpg",
+          "BP.jpg",
+          "BR.jpg",
+          "BS.jpg",
+          "BT.jpg",
+          "BU.png",
+          "BW.jpg",
+          "BX.jpg",
+          "BY.jpg",
+          "BZ.jpg",
+          "CA.jpg",
+          "CB.png"
+        ].map((file) => localPhoto("marki-samochodów", file)),
+        "kluby pilkarskie": [
+          "01 Barcelona.jpg",
+          "02 Real Madrid.jpg",
+          "03 Paris Saint-Germain.jpg",
+          "04 Bayern München.jpg",
+          "05 Liverpool.jpg",
+          "06 Juventus.jpg",
+          "07 Napoli.jpg",
+          "08 Borussia Dortmund.jpg",
+          "09 AC Milan.jpg",
+          "10 Manchester United.jpg",
+          "11 AS Roma.jpg",
+          "12 Porto.jpg",
+          "13 Real Betis Balompié.jpg",
+          "14 Sevilla.jpg",
+          "15 Jagiellonia Białystok.jpg",
+          "16 Galatasaray.jpg",
+          "17 Fiorentina.jpg",
+          "18 Lille OSC.jpg",
+          "19 Szachtar Donieck.jpg",
+          "20 Benfica.jpg",
+          "21 Olympique Lyonnais.jpg",
+          "22 Olympique de Marseille.jpg",
+          "23 Hamburger SV.jpg",
+          "24 Valencia.jpg",
+          "25 Leeds United.jpg",
+          "26 Celtic.jpg",
+          "27 Fulham.jpg",
+          "28 Santos.jpg",
+          "29 Bologna 1909.jpg",
+          "30 Eintracht Frankfurt.jpg",
+          "31 Boca Juniors.jpg",
+          "32 Korona Kielce.jpg",
+          "33 1. Köln.jpg",
+          "34 Mallorca.jpg",
+          "35 Swansea City AFC.jpg",
+          "36 Raków Częstochowa.jpg",
+          "37 Genoa CFC.jpg",
+          "38 Hull City AFC.jpg",
+          "39 Olympiacos.jpg",
+          "40 Derby County.jpg",
+          "41 RSC Anderlecht.jpg",
+          "42 FKS Stal Mielec.jpg",
+          "43 CR Flamengo.jpg",
+          "44 Salernitana 1919.jpg",
+          "45 Stade Brestois 29.jpg",
+          "46 Zawisza Bydgoszcz.jpg",
+          "47 Palermo.jpg",
+          "48 Dynamo Kijów.jpg",
+          "49 Crvena zvezda.jpg",
+          "50 São Paulo.jpg",
+          "51 Sandecja Nowy Sacz.jpg",
+          "52 FC BodoGlimt.jpg",
+          "53 Royal Standard de Liege.jpg",
+          "54 Hallas Verona FC.jpg",
+          "55 Panathinaikoss.jpg",
+          "56 FC Kobenhavn.jpg",
+          "57 APOEL FC.jpg",
+          "58 GNK Dinamo Zagrzeb.jpg",
+          "59 CA River Plate.jpg",
+          "60 HNK Hajduk Split.jpg"
+        ].map((file) => localPhoto("kluby-piłkarskie", file)),
+        superbohaterowie: [
+          "ant-man.jpg",
+          "aquaman.webp",
+          "atomówki.webp",
+          "bane.jpg",
+          "batman.avif",
+          "ben10.webp",
+          "catwomen.avif",
+          "czarna wdowa.jpg",
+          "daredevil.jpg",
+          "deadpool.jpg",
+          "doctor strange.avif",
+          "drax.jpg",
+          "gamora.jpg",
+          "groot.jpeg",
+          "harley quinn.jpeg",
+          "hawkeye.jfif",
+          "he-man.jpeg",
+          "hellboy.jpg",
+          "hulk.jpg",
+          "iniemamocni.webp",
+          "inspektor gadzet.webp",
+          "ironman.webp",
+          "joker.avif",
+          "kapitan ameryka.webp",
+          "kim kolwiek.jpg",
+          "loki.webp",
+          "magneto.webp",
+          "moon knight.jpg",
+          "mystique.avif",
+          "młodzi tytani.webp",
+          "peacemaker.avif",
+          "power rangers.jpg",
+          "profesor x.avif",
+          "robin.avif",
+          "rocket (raccoon).avif",
+          "samuraj jack.jpg",
+          "scarlet witch.jpg",
+          "scooby doo.webp",
+          "spider man.webp",
+          "star-lord.avif",
+          "storm.avif",
+          "superman.jpg",
+          "thanos.jpeg",
+          "thor.jpg",
+          "venom.jpg",
+          "vision.jpg",
+          "wojownicze zolwie ninja.jpg",
+          "wolverine.jpg",
+          "wonder woman.webp"
+        ].map((file) => localPhoto("superbohaterowie", file))
+      };
+
+      const elements = {
+        leftName: document.querySelector("#leftName"),
+        rightName: document.querySelector("#rightName"),
+        categoryName: document.querySelector("#categoryName"),
+        leftInput: document.querySelector("#leftInput"),
+        rightInput: document.querySelector("#rightInput"),
+        categoryInput: document.querySelector("#categoryInput"),
+        roundInput: document.querySelector("#roundInput"),
+        leftPlayer: document.querySelector("#leftPlayer"),
+        rightPlayer: document.querySelector("#rightPlayer"),
+        leftClock: document.querySelector("#leftClock"),
+        rightClock: document.querySelector("#rightClock"),
+        leftMeter: document.querySelector("#leftMeter"),
+        rightMeter: document.querySelector("#rightMeter"),
+        photoFrame: document.querySelector("#photoFrame"),
+        categoryPhoto: document.querySelector("#categoryPhoto"),
+        photoPlaceholder: document.querySelector("#photoPlaceholder"),
+        previousPhotoButton: document.querySelector("#previousPhotoButton"),
+        nextPhotoButton: document.querySelector("#nextPhotoButton"),
+        addButton: document.querySelector("#addButton"),
+        passButton: document.querySelector("#passButton"),
+        resetButton: document.querySelector("#resetButton"),
+        hideButton: document.querySelector("#hideButton"),
+        showButton: document.querySelector("#showButton"),
+        controls: document.querySelector("#controls")
+      };
+
+      function normalizeText(value, fallback) {
+        const text = value.trim();
+        return text.length ? text : fallback;
+      }
+
+      function normalizeCategory(value) {
+        return value
+          .trim()
+          .toLowerCase()
+          .replace(/ł/g, "l")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[-_]+/g, " ")
+          .replace(/\s+/g, " ");
+      }
+
+      function getCurrentPhotos() {
+        const key = normalizeCategory(elements.categoryInput.value);
+        return categoryPhotos[key] || [];
+      }
+
+      function getCurrentCategoryKey() {
+        return normalizeCategory(elements.categoryInput.value);
+      }
+
+      function formatSeconds(value) {
+        return String(Math.max(0, Math.ceil(value)));
+      }
+
+      function setActive(side) {
+        state.active = side;
+        state.lastTick = performance.now();
+        render();
+      }
+
+      function switchSide() {
+        setActive(state.active === "left" ? "right" : "left");
+      }
+
+      function setRunning(nextRunning) {
+        state.running = nextRunning;
+        state.lastTick = performance.now();
+        if (state.running) {
+          tick();
+        } else if (state.raf) {
+          cancelAnimationFrame(state.raf);
+          state.raf = null;
+        }
+      }
+
+      function resetRound() {
+        setRunning(false);
+        const seconds = Number(elements.roundInput.value);
+        state.roundSeconds = Number.isFinite(seconds) ? Math.max(5, Math.min(999, seconds)) : 45;
+        elements.roundInput.value = state.roundSeconds;
+        state.left = state.roundSeconds;
+        state.right = state.roundSeconds;
+        state.active = "left";
+        render();
+      }
+
+      function adjustActive(delta) {
+        const side = state.active;
+        state[side] = Math.max(0, Math.min(999, state[side] + delta));
+        render();
+      }
+
+      function showPhoto(index) {
+        const photos = getCurrentPhotos();
+        const photo = photos[index];
+
+        if (!photo) {
+          elements.photoFrame.classList.add("missing");
+          elements.categoryPhoto.removeAttribute("src");
+          elements.categoryPhoto.alt = "Brak zdjec dla wybranej kategorii";
+          elements.photoPlaceholder.textContent = "Brak zdjec dla tej kategorii";
+          return;
+        }
+
+        elements.photoFrame.classList.remove("missing");
+        elements.categoryPhoto.src = photo.src;
+        elements.categoryPhoto.alt = `${photo.name} - zdjecie do kategorii ${elements.categoryInput.value}`;
+      }
+
+      function refillPhotoQueue(photos) {
+        state.photoQueue = photos.map((_, index) => index);
+      }
+
+      function movePhoto(direction) {
+        const photos = getCurrentPhotos();
+        const categoryKey = getCurrentCategoryKey();
+
+        if (!photos.length) {
+          state.photoIndex = 0;
+          state.photoQueue = [];
+          state.photoCategoryKey = categoryKey;
+          showPhoto(state.photoIndex);
+          return;
+        }
+
+        if (state.photoCategoryKey !== categoryKey) {
+          state.photoCategoryKey = categoryKey;
+          state.photoIndex = 0;
+        } else {
+          state.photoIndex = (state.photoIndex + direction + photos.length) % photos.length;
+        }
+
+        showPhoto(state.photoIndex);
+      }
+
+      function randomizePhoto() {
+        movePhoto(1);
+      }
+
+      function previousPhoto() {
+        movePhoto(-1);
+      }
+
+      function resetPhotoForCategory() {
+        state.photoIndex = 0;
+        state.photoCategoryKey = getCurrentCategoryKey();
+        showPhoto(state.photoIndex);
+      }
+
+      function flashPlayer(side) {
+        const player = side === "left" ? elements.leftPlayer : elements.rightPlayer;
+        player.classList.remove("pass-flash");
+        void player.offsetWidth;
+        player.classList.add("pass-flash");
+      }
+
+      function passPlayer(side) {
+        state[side] = Math.max(0, state[side] - 3);
+        flashPlayer(side);
+        if (state[side] <= 0 && state.active === side) {
+          setRunning(false);
+        }
+        render();
+      }
+
+      function handlePlayerClick(side) {
+        if (state.active !== side) {
+          setActive(side);
+          setRunning(true);
+          return;
+        }
+
+        setRunning(!state.running);
+      }
+
+      function handlePlayerPass(event, side) {
+        event.preventDefault();
+        passPlayer(side);
+      }
+
+      function preventMiddleMouseScroll(event) {
+        if (event.button === 1) {
+          event.preventDefault();
+        }
+      }
+
+      function handleQuickPhoto(event) {
+        if (event.button === 1) {
+          event.preventDefault();
+          randomizePhoto();
+        }
+      }
+
+      function tick() {
+        const now = performance.now();
+        const elapsed = (now - state.lastTick) / 1000;
+        state.lastTick = now;
+
+        if (state.running) {
+          state[state.active] = Math.max(0, state[state.active] - elapsed);
+          if (state[state.active] <= 0) {
+            setRunning(false);
+          }
+          render();
+          state.raf = requestAnimationFrame(tick);
+        }
+      }
+
+      function render() {
+        elements.leftName.textContent = normalizeText(elements.leftInput.value, "Gracz 1");
+        elements.rightName.textContent = normalizeText(elements.rightInput.value, "Gracz 2");
+        elements.categoryName.textContent = normalizeText(elements.categoryInput.value, "Kategoria");
+
+        elements.leftClock.textContent = formatSeconds(state.left);
+        elements.rightClock.textContent = formatSeconds(state.right);
+
+        const leftRatio = state.roundSeconds ? state.left / state.roundSeconds : 0;
+        const rightRatio = state.roundSeconds ? state.right / state.roundSeconds : 0;
+        elements.leftMeter.style.transform = `scaleX(${Math.max(0, Math.min(1, leftRatio))})`;
+        elements.rightMeter.style.transform = `scaleX(${Math.max(0, Math.min(1, rightRatio))})`;
+
+        elements.leftPlayer.classList.toggle("active", state.active === "left");
+        elements.rightPlayer.classList.toggle("active", state.active === "right");
+        elements.leftName.classList.toggle("active", state.active === "left");
+        elements.rightName.classList.toggle("active", state.active === "right");
+        elements.leftPlayer.classList.toggle("out", state.left <= 0);
+        elements.rightPlayer.classList.toggle("out", state.right <= 0);
+      }
+
+      elements.leftInput.addEventListener("input", render);
+      elements.rightInput.addEventListener("input", render);
+      elements.categoryInput.addEventListener("input", () => {
+        render();
+        resetPhotoForCategory();
+      });
+      elements.roundInput.addEventListener("change", resetRound);
+      elements.leftPlayer.addEventListener("click", () => handlePlayerClick("left"));
+      elements.rightPlayer.addEventListener("click", () => handlePlayerClick("right"));
+      elements.leftPlayer.addEventListener("contextmenu", (event) => handlePlayerPass(event, "left"));
+      elements.rightPlayer.addEventListener("contextmenu", (event) => handlePlayerPass(event, "right"));
+      document.addEventListener("auxclick", handleQuickPhoto);
+      document.addEventListener("mousedown", preventMiddleMouseScroll);
+      elements.previousPhotoButton.addEventListener("click", previousPhoto);
+      elements.nextPhotoButton.addEventListener("click", randomizePhoto);
+      elements.addButton.addEventListener("click", () => adjustActive(5));
+      elements.passButton.addEventListener("click", () => passPlayer(state.active));
+      elements.resetButton.addEventListener("click", resetRound);
+      elements.categoryPhoto.addEventListener("error", () => {
+        elements.photoFrame.classList.add("missing");
+        elements.photoPlaceholder.textContent = "Nie znaleziono pliku zdjecia";
+      });
+
+      elements.hideButton.addEventListener("click", () => {
+        elements.controls.classList.add("hidden");
+        elements.showButton.classList.add("visible");
+      });
+
+      elements.showButton.addEventListener("click", () => {
+        elements.controls.classList.remove("hidden");
+        elements.showButton.classList.remove("visible");
+      });
+
+      document.addEventListener("keydown", (event) => {
+        const editing = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
+        if (editing) {
+          return;
+        }
+
+        if (event.code === "Space") {
+          event.preventDefault();
+          randomizePhoto();
+        }
+
+        if (event.code === "Enter") {
+          event.preventDefault();
+          switchSide();
+        }
+
+        if (event.key.toLowerCase() === "r") {
+          resetRound();
+        }
+      });
+
+      resetPhotoForCategory();
+      render();
+    </script>
+  </body>
+</html>
+
